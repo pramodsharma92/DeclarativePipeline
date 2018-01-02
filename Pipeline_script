@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+				checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'ad839d83-2b2b-4af4-ac60-103514932986', url: 'https://pramod.anantharamu@innersource.accenture.com/scm/pram/calender.git']]])
+                  }
+        }
+
+        stage("Sonar Scan") {
+            steps {
+                sh "mvn sonar:sonar -Dsonar.host.url=http://18.194.189.84:9000 -Dsonar.login=admin -Dsonar.password=admin"
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh 'mvn -Dmaven.test.failure.ignore=true install' 
+            }
+            post {
+                success {
+                    junit 'target/surefire-reports/**/*.xml' 
+                }
+            }
+        } 
+        stage ('Deploy') {
+            steps {
+            sh 'scp /var/lib/jenkins/workspace/declarative-pipeline-test/target/*.war root@ip-11-0-0-89:~/artifacts' 
+            }
+            post {
+                success {
+                sh 'sh /var/lib/jenkins/artifacts/restart_server.sh'
+                }
+            }
+        }
+        stage ('success'){
+            steps {
+                script {
+                    currentBuild.result = 'SUCCESS'
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                currentBuild.result = 'FAILURE'
+            }
+        }
+
+        always {
+            step([$class: 'Mailer',
+                notifyEveryUnstableBuild: true,
+                recipients: "pramoda1211@gmail.com",
+                sendToIndividuals: true])
+        }
+    }
+        
+}
