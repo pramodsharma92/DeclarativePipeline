@@ -52,7 +52,7 @@ pipeline {
         always {
             step([$class: 'Mailer',
                 notifyEveryUnstableBuild: true,
-                recipients: "pramoda1211@gmail.com",
+                recipients: "pramod.anantharamu@accenture.com",
                 sendToIndividuals: true])
         }
     }
